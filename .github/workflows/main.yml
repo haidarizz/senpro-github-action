@@ -13,11 +13,36 @@ jobs:
         node-version: [16.x]
 
     steps:
-      - uses: actions/checkout@v2
-      - name: Testing Build pre-Deplot
-        uses: actions/setup-node@v2
+    - uses: actions/checkout@v2
+    - name: Testing Build pre-Deplot
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: "npm"
+    - run: npm i
+    - run: npm run build
+
+  deploy:
+    needs: test-build
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [16.x]
+
+    steps:
+      - name: Build app on VM
+        uses: appleboy/ssh-action@master
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: "npm"
-      - run: npm i
-      - run: npm run build
+          host: ${{ secrets.HOST }}
+          port: ${{ secrets.PORT }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          script: |
+            eval "$(ssh-agent -s)"
+            ssh-add ~/.ssh/senpro-ssh-5
+            cd ~/senpro/456368/modul01/senpro-github-action
+            git restore .
+            git pull origin main
+            npm install
+            npm run build
